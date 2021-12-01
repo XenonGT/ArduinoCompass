@@ -2,6 +2,7 @@ package com.example.arduino;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -13,6 +14,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.ParcelUuid;
+import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
 import android.widget.Adapter;
@@ -20,6 +22,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -47,6 +50,9 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     // ImageView
     ImageView compassImage;
 
+    //
+    ProgressDialog pD;
+
     // Bluetooth variables
     BluetoothManager manager;
     BluetoothAdapter btAdapter;
@@ -69,6 +75,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
         // --------- Initialization ---------
 
+
         // Initialize Buttons
         btnDisconnect = findViewById(R.id.DisconnectButton);
         btnTest = findViewById(R.id.TestButton);
@@ -80,6 +87,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         // Initialize ImageView
         compassImage = findViewById(R.id.CompassImage);
 
+
         // Get intent extra from previous Activity
         Intent intent = getIntent();
         Address = intent.getStringExtra(MainActivity.ADDRESS);
@@ -89,9 +97,26 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
         // ------------------------------------
+        pD = new ProgressDialog(this);
+        pD.setTitle("Connecting to Device");
+        pD.setMessage("Connecting...");
+        pD.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        pD.setCancelable(false);
+
 
         // Connect to the Bluetooth device
-        connectToDevice();
+        pD.show();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    connectToDevice();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                pD.dismiss();
+            }
+        }).start();
 
         // Close connection and return to MainActivity
         btnDisconnect.setOnClickListener(view -> Disconnect());
@@ -107,7 +132,6 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             String temp = degreeText.substring(0, degreeText.indexOf("°"));
             int degree = Integer.parseInt(temp);
             btSocket.getOutputStream().write(degree);
-            deviceName.setText(degree);
 
         } catch (Exception e) {
             deviceName.setText(e.getMessage());
@@ -116,6 +140,8 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     }
 
     public void connectToDevice(){
+
+
         manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         btAdapter = manager.getAdapter();
 
@@ -136,6 +162,8 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             }
             counter++;
         } while (!btSocket.isConnected() && counter < 3);
+
+
 
         // If the connection was successful display the devices name, else it will close the activity and return to MainActivity
         if(btSocket.isConnected())
