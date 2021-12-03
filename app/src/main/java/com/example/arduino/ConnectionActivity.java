@@ -2,35 +2,30 @@ package com.example.arduino;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothSocket;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.ParcelUuid;
-import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
-import android.widget.Adapter;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.ListAdapter;
-import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConnectionActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -50,8 +45,11 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     // ImageView
     ImageView compassImage;
 
-    //
+    // ProgressDialog
     ProgressDialog pD;
+
+    //
+    boolean isConnected = true;
 
     // Bluetooth variables
     BluetoothManager manager;
@@ -75,7 +73,6 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
         // --------- Initialization ---------
 
-
         // Initialize Buttons
         btnDisconnect = findViewById(R.id.DisconnectButton);
         btnTest = findViewById(R.id.TestButton);
@@ -87,6 +84,13 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         // Initialize ImageView
         compassImage = findViewById(R.id.CompassImage);
 
+        // Set Progress Dialog
+        pD = new ProgressDialog(this);
+        pD.setTitle("Connecting to Device");
+        pD.setMessage("Connecting...");
+        pD.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        pD.setCancelable(false);
+
 
         // Get intent extra from previous Activity
         Intent intent = getIntent();
@@ -97,16 +101,12 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
         // ------------------------------------
-        pD = new ProgressDialog(this);
-        pD.setTitle("Connecting to Device");
-        pD.setMessage("Connecting...");
-        pD.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        pD.setCancelable(false);
-
 
         // Connect to the Bluetooth device
+        // Loading screen while connecting
         pD.show();
-        new Thread(new Runnable() {
+
+        new Handler().post(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -116,7 +116,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
                 }
                 pD.dismiss();
             }
-        }).start();
+        });
 
         // Close connection and return to MainActivity
         btnDisconnect.setOnClickListener(view -> Disconnect());
@@ -140,8 +140,6 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     }
 
     public void connectToDevice(){
-
-
         manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         btAdapter = manager.getAdapter();
 
@@ -163,13 +161,15 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             counter++;
         } while (!btSocket.isConnected() && counter < 3);
 
-
-
         // If the connection was successful display the devices name, else it will close the activity and return to MainActivity
-        if(btSocket.isConnected())
+        if(btSocket.isConnected()) {
             deviceName.setText(connectedDevice.getName());
-        else
-            Disconnect();
+            isConnected = true;
+            return;
+        }
+
+        isConnected = false;
+        ConnectionActivity.this.finish();
     }
 
     // Close connection and close activity
