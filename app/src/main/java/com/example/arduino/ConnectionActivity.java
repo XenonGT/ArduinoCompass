@@ -22,8 +22,10 @@ import android.view.animation.RotateAnimation;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -31,6 +33,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
     // Mac-Address that will be fetched from intent extra
     private String Address = "";
+    private String Name = "";
     // UUID that will be used for establishing a connection
     private UUID Uuid;
 
@@ -41,6 +44,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     // TextView
     TextView deviceName;
     TextView degreeRotation;
+    TextView receivedData;
 
     // ImageView
     ImageView compassImage;
@@ -80,6 +84,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         // Initialize TextViews
         deviceName = findViewById(R.id.Name);
         degreeRotation = findViewById(R.id.Degree);
+        receivedData = findViewById(R.id.ReceivedData);
 
         // Initialize ImageView
         compassImage = findViewById(R.id.CompassImage);
@@ -95,12 +100,15 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         // Get intent extra from previous Activity
         Intent intent = getIntent();
         Address = intent.getStringExtra(MainActivity.ADDRESS);
+        Name = intent.getStringExtra(MainActivity.NAME);
 
         // --------- Sensor ---------
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
         // ------------------------------------
+
+        deviceName.setText(Name);
 
         // Connect to the Bluetooth device
         // Loading screen while connecting
@@ -134,9 +142,23 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             btSocket.getOutputStream().write(degree);
 
         } catch (Exception e) {
-            deviceName.setText(e.getMessage());
+            receivedData.setText(e.getMessage());
         }
 
+        InputStream inputStream = null;
+
+        try {
+
+            inputStream = btSocket.getInputStream();
+
+            inputStream.skip(inputStream.available());
+
+            byte input = (byte) inputStream.read();
+            receivedData.setText((char) input);
+
+        } catch (Exception e) {
+            receivedData.setText(e.getMessage());
+        }
     }
 
     public void connectToDevice(){
@@ -156,14 +178,14 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
                 btSocket.connect();
 
             } catch (IOException e) {
-                deviceName.setText(e.getMessage());
+                receivedData.setText(e.getMessage());
             }
             counter++;
         } while (!btSocket.isConnected() && counter < 3);
 
         // If the connection was successful display the devices name, else it will close the activity and return to MainActivity
         if(btSocket.isConnected()) {
-            deviceName.setText(connectedDevice.getName());
+            receivedData.setText(connectedDevice.getName());
             isConnected = true;
             return;
         }

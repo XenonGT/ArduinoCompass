@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Intent extra to send the Mac-Address to the ConnectionAvtivity
     public static final String ADDRESS = "com.example.arduino.ADDRESS";
+    public static final String NAME = "com.example.arduino.NAME";
 
     // Button
     Button btnConnect;
@@ -115,8 +116,11 @@ public class MainActivity extends AppCompatActivity {
     // Start activity to connect to Bluetooth device
     public void openConnectionActivity() {
         String address = deviceAddress.getText().toString();
+        String name = deviceName.getText().toString();
         Intent intent = new Intent(this, ConnectionActivity.class);
         intent.putExtra(ADDRESS, address);
+        intent.putExtra(NAME, name);
+
         startActivity(intent);
     }
 }
