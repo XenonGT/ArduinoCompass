@@ -1,15 +1,12 @@
 package com.example.arduino;
 
-import androidx.appcompat.app.AppCompatActivity;
 
-import android.annotation.SuppressLint;
-import android.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothSocket;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -18,17 +15,16 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ParcelUuid;
+import android.util.Log;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ConnectionActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -41,6 +37,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     // Button
     Button btnDisconnect;
     Button btnTest;
+    Button btnCalibrate;
 
     // TextView
     TextView deviceName;
@@ -69,7 +66,10 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
    private float[] mGravity = new float[3];
    private float[] mGeomagnetic = new float[3];
    private float azimuth = 0f;
+   private float azimuthOffset = 0f;
    private float currentAzimuth = 0f;
+    float prevAzimuth = 0f;
+   private int pass360 = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +81,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         // Initialize Buttons
         btnDisconnect = findViewById(R.id.DisconnectButton);
         btnTest = findViewById(R.id.TestButton);
+        btnCalibrate = findViewById(R.id.CalibrateButton);
 
         // Initialize TextViews
         deviceName = findViewById(R.id.Name);
@@ -132,6 +133,16 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
         // Write test data to Bluetooth device
         btnTest.setOnClickListener(view -> sendSignal());
+
+        // Set offset for Degree
+        btnCalibrate.setOnClickListener(view ->  calibrate());
+
+    }
+
+    private void calibrate(){
+        azimuthOffset = azimuth;
+        prevAzimuth = 0f;
+        pass360 = 0;
     }
 
 
@@ -215,6 +226,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         final float alpha = 0.97f;
+
         synchronized (this) {
             if(sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 mGravity[0] = alpha * mGravity[0] + (1 - alpha) * sensorEvent.values[0];
@@ -239,7 +251,40 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
                 azimuth = (azimuth + 360) % 360;
 
                 Animation animation = new RotateAnimation(-currentAzimuth, -azimuth, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
-                currentAzimuth = azimuth;
+                currentAzimuth = (azimuth - azimuthOffset + 360) % 360;
+
+                // Idee divide in 0,90,180,270,360 areas
+                    // 0-90 90-180 180-270 270-360
+                    int test = (int) prevAzimuth;
+                    int test2 = (int) currentAzimuth;
+
+                if (4 < test2 && 180 > test2 &&  test == 0  ){
+                    pass360 += 1;
+                    Log.i("INfo", test + " " + test2);
+                    prevAzimuth = currentAzimuth;
+                }
+                //Rüchlauf
+                if (4 < test && 180 > test &&  test2 == 0  ){
+                    pass360 -= 1;
+                    Log.i("INfo", test + " " + test2);
+                    prevAzimuth = currentAzimuth;
+                }
+
+                if (356 > test2 && 180 < test2 && test == 0 ) {
+                    pass360 -= 1;
+                    Log.i("INfo", test + " " + test2);
+                    prevAzimuth = currentAzimuth;
+                }
+                // Rücklauf
+                if (356 > test && 180 < test && test2 == 0 ) {
+                    pass360 += 1;
+                    Log.i("INfo", test + " " + test2);
+                    prevAzimuth = currentAzimuth;
+                }
+
+                if(test2 == 0){
+                        prevAzimuth = currentAzimuth;
+                }
 
                 animation.setDuration(500);
                 animation.setRepeatCount(0);
@@ -248,8 +293,18 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
                 compassImage.startAnimation(animation);
             }
         }
-        int currDegree = (int) currentAzimuth;
-        degreeRotation.setText(currDegree + "°");
+        int currDegree = (int) currentAzimuth ;
+
+        if(0 == pass360){
+            degreeRotation.setText(currDegree + "°" + " not Rotated" +  pass360);
+        } else
+        if( 0 > pass360){
+            degreeRotation.setText(currDegree + "°" + " In Left Rotation." +  pass360);
+        } else {
+            degreeRotation.setText(currDegree + "°" + " In Right Rotation." + pass360);
+        }
+
+
     }
 
     @Override

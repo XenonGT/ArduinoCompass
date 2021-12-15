@@ -5,10 +5,11 @@
       <map>
         <entry key="..\:/Users/Fabian/AndroidStudioProjects/Arduino/app/src/main/res/layout/activity_connected_device.xml" value="0.36231884057971014" />
         <entry key="..\:/Users/Fabian/AndroidStudioProjects/Arduino/app/src/main/res/layout/activity_main.xml" value="0.33" />
+        <entry key="..\:/Users/Timfr/Documents/GitHub/ArduinoCompass/app/src/main/res/layout/activity_connected_device.xml" value="0.33229166666666665" />
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="1.8" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" project-jdk-name="1.8" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">
