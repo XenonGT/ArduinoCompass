@@ -1,12 +1,15 @@
 package com.example.arduino;
 
-import androidx.appcompat.app.AppCompatActivity;
 
+
+import android.Manifest;
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
@@ -17,6 +20,10 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +59,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // --------- Get Runtime Permissions ---------
+
+        if(ContextCompat.checkSelfPermission(this, "android.permission.BLUETOOTH_CONNECT") == PackageManager.PERMISSION_DENIED){
+
+
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{"android.permission.BLUETOOTH_CONNECT"},
+                    1);
+        } else{
+
+        }
+
         // --------- Initialization ---------
+
 
         // Initialize TextViews
         deviceName = findViewById(R.id.DeviceName);
