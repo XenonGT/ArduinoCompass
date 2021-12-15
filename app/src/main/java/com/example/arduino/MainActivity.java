@@ -28,6 +28,8 @@ public class MainActivity extends AppCompatActivity {
     public static final String ADDRESS = "com.example.arduino.ADDRESS";
     public static final String NAME = "com.example.arduino.NAME";
 
+    private String lastAdress = "";
+
     // Button
     Button btnConnect;
     Button btnRefresh;
@@ -82,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
             for (BluetoothDevice btd : pairedDevices) {
                 if(btd.getName().equals(tempName)) {
                     tempAddress = btd.getAddress();
+                    lastAdress = tempAddress;
                     break;
                 }
             }

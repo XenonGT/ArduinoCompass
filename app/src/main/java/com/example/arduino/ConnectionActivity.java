@@ -2,6 +2,7 @@ package com.example.arduino;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -131,8 +132,8 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
         // Write test data to Bluetooth device
         btnTest.setOnClickListener(view -> sendSignal());
-
     }
+
 
     public void sendSignal() {
         String degreeText = degreeRotation.getText().toString();
@@ -145,19 +146,24 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             receivedData.setText(e.getMessage());
         }
 
-        InputStream inputStream = null;
 
         try {
-
-            inputStream = btSocket.getInputStream();
-
-            inputStream.skip(inputStream.available());
-
-            byte input = (byte) inputStream.read();
-            receivedData.setText((char) input);
+            receiveSignal();
 
         } catch (Exception e) {
             receivedData.setText(e.getMessage());
+        }
+    }
+
+    public void receiveSignal() throws IOException {
+        InputStream inStream = btSocket.getInputStream();
+        int byteCount = inStream.available();
+
+        if(byteCount > 0) {
+            byte[] rawBytes = new byte[byteCount];
+            inStream.read(rawBytes);
+            String message = new String(rawBytes, "UTF-8");
+            receivedData.setText("Data: " + message);
         }
     }
 
