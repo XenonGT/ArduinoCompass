@@ -167,49 +167,56 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     }
 
     private void startTimer() {
-        timer = new CountDownTimer(START_IN_MILLIS, 1000) {
-            int tempValue = 0;
-            final int[] lastDegrees = new int[6];
-            int counter = 0;
+        if(timer == null) {
+            timer = new CountDownTimer(START_IN_MILLIS, 1000) {
+                int tempValue = 0;
+                final int[] lastDegrees = new int[6];
+                int counter = 0;
 
-            @Override
-            public void onTick(long millisUntilFinished) {
-                timerRunning = true;
-                timeLeft = millisUntilFinished;
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    timerRunning = true;
+                    timeLeft = millisUntilFinished;
 
-                try{
+                    try{
 
-                    tempValue = (int) currentAzimuth;
-                    lastDegrees[counter] = tempValue;
+                        tempValue = (int) currentAzimuth;
+                        lastDegrees[counter] = tempValue;
 
-                    if(counter > 0) {
-                        if(!checkData(lastDegrees[0], tempValue)){
-                            timerRunning = false;
-                            cancel();
+                        if(counter > 0) {
+                            if(!checkData(lastDegrees[0], tempValue)){
+                                timerRunning = false;
+                                timer = null;
+                                cancel();
+                            }
                         }
+                        counter++;
+                        updateCountdown();
+
+                    } catch (Exception e) {
+                        receivedData.setText(e.getMessage());
+                        timerRunning = false;
+                        timer = null;
+                        cancel();
                     }
-                    counter++;
-                    updateCountdown();
+                }
 
-                } catch (Exception e) {
-                    receivedData.setText(e.getMessage());
+                @Override
+                public void onFinish() {
+                    int signal = lastDegrees[0];
+                    receivedData.setText("Signal: " + signal + " send!");
+                    new Thread() {
+                        @Override
+                        public void run() {
+                            sendSignal(signal);
+                        }
+                    }.start();
+                    timer = null;
                     timerRunning = false;
-                    cancel();
                 }
-            }
 
-            @Override
-            public void onFinish() {
-                receivedData.setText("Signal: " + Integer.toString(lastDegrees[0]) + " send!");
-                timerRunning = false;
-
-                try {
-                    sendSignal(lastDegrees[0]);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }.start();
+            }.start();
+        }
     }
 
     private void updateCountdown() {
@@ -217,8 +224,13 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         countdown.setText(Integer.toString(seconds));
     }
 
-    public void sendSignal(int signal) throws IOException {
-        btSocket.getOutputStream().write(signal);
+    public void sendSignal(int signal) {
+        try {
+            btSocket.getOutputStream().write(signal);
+
+        } catch (Exception e) {
+            receivedData.setText(e.getMessage());
+        }
     }
 
 
@@ -300,8 +312,6 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
-        if(!timerRunning)
-            startTimer();
 
         final float alpha = 0.97f;
 
@@ -372,6 +382,12 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             }
         }
         int currDegree = (int) currentAzimuth ;
+
+        if(isConnected) {
+            if(!timerRunning) {
+                startTimer();
+            }
+        }
 
         if(0 == pass360){
             degreeRotation.setText(currDegree + "°" + " not Rotated" +  pass360);
