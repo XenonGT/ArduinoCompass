@@ -58,6 +58,15 @@
         android:textSize="18sp" />
 
     <TextView
+        android:id="@+id/Countdown"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="150dp"
+        android:layout_marginTop="55dp"
+        android:text="S"
+        android:textSize="18sp" />
+
+    <TextView
         android:id="@+id/Degree"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

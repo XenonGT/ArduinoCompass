@@ -44,6 +44,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     TextView deviceName;
     TextView degreeRotation;
     TextView receivedData;
+    TextView countdown;
 
     // ImageView
     ImageView compassImage;
@@ -72,7 +73,11 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
    float prevAzimuth = 0f;
    private int pass360 = 0;
 
-   CountDownTimer timer;
+    // timer
+    private  static final long START_IN_MILLIS = 6000;
+    private CountDownTimer timer;
+    private long timeLeft = START_IN_MILLIS;
+    private boolean timerRunning = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +95,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         deviceName = findViewById(R.id.Name);
         degreeRotation = findViewById(R.id.Degree);
         receivedData = findViewById(R.id.ReceivedData);
+        countdown = findViewById(R.id.Countdown);
 
         // Initialize ImageView
         compassImage = findViewById(R.id.CompassImage);
@@ -114,6 +120,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         // ------------------------------------
 
         deviceName.setText(Name);
+        receivedData.setText("");
 
         // Connect to the Bluetooth device
         // Loading screen while connecting
@@ -139,33 +146,8 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
         // Set offset for Degree
         btnCalibrate.setOnClickListener(view ->  calibrate());
-
-        timer = new CountDownTimer(6000, 1000) {
-
-            int[] lastDegree = new int[5];
-            int counter = 0;
-            int tempValue;
-
-            public void onTick(long millisUntilFinished) {
-                receivedData.setText("seconds remaining: " + millisUntilFinished / 1000);
-                lastDegree[counter] = (int) currentAzimuth;
-                if(counter >= 5) {
-                    tempValue = lastDegree[0];
-                    for(int i = 1; i < counter; i++) {
-                        if(!checkData(tempValue, lastDegree[i])) {
-                            //cancel();
-                        }
-                    }
-                }
-                counter++;
-            }
-
-            public void onFinish() {
-                //receivedData.setText("finish");
-            }
-        };
-
     }
+
 
     private boolean checkData(int i, int y){
         if(i == y)
@@ -182,7 +164,61 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         azimuthOffset = azimuth;
         prevAzimuth = 0f;
         pass360 = 0;
-        timer.start();
+    }
+
+    private void startTimer() {
+        timer = new CountDownTimer(START_IN_MILLIS, 1000) {
+            int tempValue = 0;
+            final int[] lastDegrees = new int[6];
+            int counter = 0;
+
+            @Override
+            public void onTick(long millisUntilFinished) {
+                timerRunning = true;
+                timeLeft = millisUntilFinished;
+
+                try{
+
+                    tempValue = (int) currentAzimuth;
+                    lastDegrees[counter] = tempValue;
+
+                    if(counter > 0) {
+                        if(!checkData(lastDegrees[0], tempValue)){
+                            timerRunning = false;
+                            cancel();
+                        }
+                    }
+                    counter++;
+                    updateCountdown();
+
+                } catch (Exception e) {
+                    receivedData.setText(e.getMessage());
+                    timerRunning = false;
+                    cancel();
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                receivedData.setText("Signal: " + Integer.toString(lastDegrees[0]) + " send!");
+                timerRunning = false;
+
+                try {
+                    sendSignal(lastDegrees[0]);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+    }
+
+    private void updateCountdown() {
+        int seconds = (int) (timeLeft / 1000) % 60;
+        countdown.setText(Integer.toString(seconds));
+    }
+
+    public void sendSignal(int signal) throws IOException {
+        btSocket.getOutputStream().write(signal);
     }
 
 
@@ -242,7 +278,6 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
         // If the connection was successful display the devices name, else it will close the activity and return to MainActivity
         if(btSocket.isConnected()) {
-            receivedData.setText(connectedDevice.getName());
             isConnected = true;
             return;
         }
@@ -265,6 +300,9 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
+        if(!timerRunning)
+            startTimer();
+
         final float alpha = 0.97f;
 
         synchronized (this) {
