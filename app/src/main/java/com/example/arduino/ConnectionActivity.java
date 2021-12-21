@@ -13,6 +13,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.ParcelUuid;
 import android.util.Log;
@@ -68,8 +69,10 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
    private float azimuth = 0f;
    private float azimuthOffset = 0f;
    private float currentAzimuth = 0f;
-    float prevAzimuth = 0f;
+   float prevAzimuth = 0f;
    private int pass360 = 0;
+
+   CountDownTimer timer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,12 +140,49 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         // Set offset for Degree
         btnCalibrate.setOnClickListener(view ->  calibrate());
 
+        timer = new CountDownTimer(6000, 1000) {
+
+            int[] lastDegree = new int[5];
+            int counter = 0;
+            int tempValue;
+
+            public void onTick(long millisUntilFinished) {
+                receivedData.setText("seconds remaining: " + millisUntilFinished / 1000);
+                lastDegree[counter] = (int) currentAzimuth;
+                if(counter >= 5) {
+                    tempValue = lastDegree[0];
+                    for(int i = 1; i < counter; i++) {
+                        if(!checkData(tempValue, lastDegree[i])) {
+                            //cancel();
+                        }
+                    }
+                }
+                counter++;
+            }
+
+            public void onFinish() {
+                //receivedData.setText("finish");
+            }
+        };
+
+    }
+
+    private boolean checkData(int i, int y){
+        if(i == y)
+            return true;
+        else if(i == y - 1 || i == y - 2)
+            return true;
+        else if(i == y + 1 || i == y + 2)
+            return true;
+        else
+            return false;
     }
 
     private void calibrate(){
         azimuthOffset = azimuth;
         prevAzimuth = 0f;
         pass360 = 0;
+        timer.start();
     }
 
 
@@ -303,8 +343,6 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         } else {
             degreeRotation.setText(currDegree + "°" + " In Right Rotation." + pass360);
         }
-
-
     }
 
     @Override
