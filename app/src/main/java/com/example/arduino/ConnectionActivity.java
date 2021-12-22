@@ -25,6 +25,7 @@ import android.widget.TextView;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
 public class ConnectionActivity extends AppCompatActivity implements SensorEventListener {
@@ -204,7 +205,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
                 @Override
                 public void onFinish() {
                     int signal = lastDegrees[0];
-                    receivedData.setText("Signal: " + signal + " send!");
+                  //  receivedData.setText("Signal: " + signal + " send!");
                     new Thread() {
                         @Override
                         public void run() {
@@ -221,12 +222,20 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
     private void updateCountdown() {
         int seconds = (int) (timeLeft / 1000) % 60;
-        countdown.setText(Integer.toString(seconds));
+
+        btnTest.setText("Send Data " + Integer.toString(seconds));
     }
 
     public void sendSignal(int signal) {
         try {
             btSocket.getOutputStream().write(signal);
+
+        } catch (Exception e) {
+            receivedData.setText(e.getMessage());
+        }
+
+        try {
+            receiveSignal();
 
         } catch (Exception e) {
             receivedData.setText(e.getMessage());
@@ -242,7 +251,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             btSocket.getOutputStream().write(degree);
 
         } catch (Exception e) {
-            receivedData.setText(e.getMessage());
+           // receivedData.setText(e.getMessage());
         }
 
 
@@ -250,7 +259,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             receiveSignal();
 
         } catch (Exception e) {
-            receivedData.setText(e.getMessage());
+          //  receivedData.setText(e.getMessage());
         }
     }
 
@@ -262,7 +271,19 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             byte[] rawBytes = new byte[byteCount];
             inStream.read(rawBytes);
             String message = new String(rawBytes, "UTF-8");
-            receivedData.setText("Data: " + message);
+            runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+                    if(receivedData.getText().toString().equals("Data: Erhalten")){
+                        receivedData.setText("Data: " + message + "!");
+                    } else {
+                        receivedData.setText("Data: " + message);
+                    }
+                }
+            });
+
+
         }
     }
 
