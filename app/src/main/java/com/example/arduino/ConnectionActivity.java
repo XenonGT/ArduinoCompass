@@ -53,8 +53,8 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     // ProgressDialog
     ProgressDialog pD;
 
-    //
-    boolean isConnected = true;
+    // Check if connection is established
+    boolean isConnected = false;
 
     // Bluetooth variables
     BluetoothManager manager;
@@ -74,7 +74,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
    float prevAzimuth = 0f;
    private int pass360 = 0;
 
-    // timer
+    // Countdown timer
     private  static final long START_IN_MILLIS = 6000;
     private CountDownTimer timer;
     private long timeLeft = START_IN_MILLIS;
@@ -150,6 +150,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     }
 
 
+    // check if i and y are similar with an offset of +-2
     private boolean checkData(int i, int y){
         if(i == y)
             return true;
@@ -161,12 +162,14 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             return false;
     }
 
+    // calibrate the orientation
     private void calibrate(){
         azimuthOffset = azimuth;
         prevAzimuth = 0f;
         pass360 = 0;
     }
 
+    // start countdown timer
     private void startTimer() {
         if(timer == null) {
             timer = new CountDownTimer(START_IN_MILLIS, 1000) {
@@ -176,16 +179,19 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
                 @Override
                 public void onTick(long millisUntilFinished) {
+                    // set timerRunning true
                     timerRunning = true;
                     timeLeft = millisUntilFinished;
 
                     try{
-
+                        // save current degree rotation and list it in array
                         tempValue = (int) currentAzimuth;
                         lastDegrees[counter] = tempValue;
 
                         if(counter > 0) {
+                            // check each time a new degree rotation was saved, if they are similar
                             if(!checkData(lastDegrees[0], tempValue)){
+                                // close timer when data is not similar
                                 timerRunning = false;
                                 timer = null;
                                 cancel();
@@ -205,7 +211,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
                 @Override
                 public void onFinish() {
                     int signal = lastDegrees[0];
-                  //  receivedData.setText("Signal: " + signal + " send!");
+                    // send a signal to Bluetooth device
                     new Thread() {
                         @Override
                         public void run() {
@@ -220,12 +226,14 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         }
     }
 
+    // update countdown
     private void updateCountdown() {
         int seconds = (int) (timeLeft / 1000) % 60;
 
         btnTest.setText("Send Data " + Integer.toString(seconds));
     }
 
+    // send a specific signal
     public void sendSignal(int signal) {
         try {
             btSocket.getOutputStream().write(signal);
@@ -242,7 +250,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         }
     }
 
-
+    // send the current degree signal
     public void sendSignal() {
         String degreeText = degreeRotation.getText().toString();
         try {
@@ -263,11 +271,14 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         }
     }
 
+    // receive messages from Bluetooth device
     public void receiveSignal() throws IOException {
+        // Inputstream to get all inputs
         InputStream inStream = btSocket.getInputStream();
         int byteCount = inStream.available();
 
         if(byteCount > 0) {
+            // read the input and convert it to a message
             byte[] rawBytes = new byte[byteCount];
             inStream.read(rawBytes);
             String message = new String(rawBytes, "UTF-8");
@@ -287,6 +298,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         }
     }
 
+    // connect to Bluetooth device
     public void connectToDevice(){
         manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         btAdapter = manager.getAdapter();
@@ -309,7 +321,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             counter++;
         } while (!btSocket.isConnected() && counter < 3);
 
-        // If the connection was successful display the devices name, else it will close the activity and return to MainActivity
+        // If the connection was successful return, else it will close the activity and return to MainActivity
         if(btSocket.isConnected()) {
             isConnected = true;
             return;
@@ -404,6 +416,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         }
         int currDegree = (int) currentAzimuth ;
 
+        // if a connection is established and no countdown timer is currently running, start a new one
         if(isConnected) {
             if(!timerRunning) {
                 startTimer();
@@ -414,7 +427,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             degreeRotation.setText(currDegree + "°" + " not Rotated" +  pass360);
         } else
         if( 0 > pass360){
-            degreeRotation.setText(currDegree + "°" + " In Left Rotation." +  pass360);
+            degreeRotation.setText(-currDegree + "°" + " In Left Rotation." +  pass360);
         } else {
             degreeRotation.setText(currDegree + "°" + " In Right Rotation." + pass360);
         }

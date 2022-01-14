@@ -20,6 +20,7 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -34,8 +35,6 @@ public class MainActivity extends AppCompatActivity {
     // Intent extra to send the Mac-Address to the ConnectionAvtivity
     public static final String ADDRESS = "com.example.arduino.ADDRESS";
     public static final String NAME = "com.example.arduino.NAME";
-
-    private String lastAdress = "";
 
     // Button
     Button btnConnect;
@@ -53,6 +52,10 @@ public class MainActivity extends AppCompatActivity {
     BluetoothManager manager;
     List savedList;
     Set<BluetoothDevice> pairedDevices;
+
+    // Adapter
+    Adapter deviceAdapter;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,51 +92,56 @@ public class MainActivity extends AppCompatActivity {
 
         btnConnect.setVisibility(View.GONE);
 
-        // Get Bluetooth devices and save them in a list
-        manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
-        btAdapter = manager.getAdapter();
-
-        Adapter deviceAdapter = refreshDevices();
+        updateDevices();
 
         // Click on ListView item to get name and address and be able to connect to it
         listView.setOnItemClickListener((adapterView, view, i, l) -> {
 
-            String tempName = deviceAdapter.getItem(i).toString();
-            String tempAddress = null;
+            String temp = deviceAdapter.getItem(i).toString();
+            String tempName = temp.substring(0, temp.indexOf("|"));
+            String tempAddress = temp.substring(temp.indexOf("|") + 1);
 
             for (BluetoothDevice btd : pairedDevices) {
-                if(btd.getName().equals(tempName)) {
-                    tempAddress = btd.getAddress();
-                    lastAdress = tempAddress;
-                    break;
+                if(btd.getName().equals(tempName) && btd.getAddress().equals(tempAddress)) {
+                    deviceName.setText(tempName);
+                    deviceAddress.setText(tempAddress);
+                    btnConnect.setVisibility(View.VISIBLE);
+                    return;
                 }
             }
             deviceName.setText(tempName);
             deviceAddress.setText(tempAddress);
-            btnConnect.setVisibility(View.VISIBLE);
+            Toast.makeText(getApplicationContext(), "Error while finding device", Toast.LENGTH_SHORT);
         });
 
         // Connect to Bluetooth device
         btnConnect.setOnClickListener(view -> openConnectionActivity());
 
         // Refresh devices
-        btnRefresh.setOnClickListener(view -> refreshDevices());
+        btnRefresh.setOnClickListener(view -> updateDevices());
     }
 
     // Refresh paired Bluetooth devices and add them to an ArrayList
-    public Adapter refreshDevices() {
+    public void updateDevices() {
+        // Get Bluetooth devices and save them in a list
+        manager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+        btAdapter = manager.getAdapter();
+
         savedList = new ArrayList();
         pairedDevices = btAdapter.getBondedDevices();
 
         // Get all paired Bluetooth devices
         btAdapter.enable();
         for (BluetoothDevice btd : pairedDevices) {
-            savedList.add(btd.getName());
+            savedList.add(btd.getName() + "|" + btd.getAddress());
         }
         // Implement the list to the listView
-        Adapter deviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, savedList);
+        deviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, savedList);
         listView.setAdapter((ListAdapter) deviceAdapter);
-        return deviceAdapter;
+
+        deviceAddress.setText("");
+        deviceName.setText("");
+        btnConnect.setVisibility(View.GONE);
     }
 
     // Start activity to connect to Bluetooth device
@@ -145,5 +153,6 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra(NAME, name);
 
         startActivity(intent);
+        updateDevices();
     }
 }
