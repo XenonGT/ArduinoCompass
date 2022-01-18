@@ -16,7 +16,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="100dp"
+        android:layout_marginTop="110dp"
         android:orientation="horizontal">
 
         <Button
@@ -58,14 +58,14 @@
         android:textSize="18sp" />
 
     <TextView
-        android:id="@+id/Countdown"
+        android:id="@+id/info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_marginLeft="150dp"
+
+        android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
-        android:layout_marginTop="55dp"
-        android:text=""
+        android:layout_marginTop="80dp"
+        android:text="T"
         android:textSize="18sp" />
 
     <TextView

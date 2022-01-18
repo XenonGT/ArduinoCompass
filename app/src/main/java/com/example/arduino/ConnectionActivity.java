@@ -23,8 +23,10 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
@@ -45,7 +47,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
     TextView deviceName;
     TextView degreeRotation;
     TextView receivedData;
-    TextView countdown;
+    TextView receivedInfo;
 
     // ImageView
     ImageView compassImage;
@@ -96,7 +98,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         deviceName = findViewById(R.id.Name);
         degreeRotation = findViewById(R.id.Degree);
         receivedData = findViewById(R.id.ReceivedData);
-        countdown = findViewById(R.id.Countdown);
+        receivedInfo = findViewById(R.id.info);
 
         // Initialize ImageView
         compassImage = findViewById(R.id.CompassImage);
@@ -239,14 +241,14 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
             btSocket.getOutputStream().write(signal);
 
         } catch (Exception e) {
-            receivedData.setText(e.getMessage());
+           // receivedData.setText(e.getMessage());
         }
 
         try {
-            receiveSignal();
+           // receiveSignal();
 
         } catch (Exception e) {
-            receivedData.setText(e.getMessage());
+           // receivedData.setText(e.getMessage());
         }
     }
 
@@ -264,7 +266,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
 
         try {
-            receiveSignal();
+           // receiveSignal();
 
         } catch (Exception e) {
           //  receivedData.setText(e.getMessage());
@@ -288,13 +290,90 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
                 public void run() {
                     if(receivedData.getText().toString().equals("Data: Erhalten")){
                         receivedData.setText("Data: " + message + "!");
-                    } else {
+                    } else if(message == "Erhalten")  {
                         receivedData.setText("Data: " + message);
+                    } else {
+                        // info Textfield here
+                        receivedInfo.setText("Data: " + message);
                     }
                 }
             });
 
 
+        }
+    }
+
+    public void receiveSignal2() throws IOException {
+        BufferedReader reader = null;
+        reader = new BufferedReader(new InputStreamReader(
+                btSocket.getInputStream()));
+        if(reader.ready()) {
+            // read the input and convert it to a message
+
+            String message = reader.readLine();
+            runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+                    if(receivedData.getText().toString().equals("Data: Erhalten")){
+                        receivedData.setText("Data: " + message + "!");
+                    } else if(message == "Erhalten")  {
+                        receivedData.setText("Data: " + message);
+                    } else {
+                        // info Textfield here
+                        receivedInfo.setText("Data: " + message);
+                    }
+                }
+            });
+
+
+        }
+    }
+
+    Thread myThread;
+
+    public void receiveSetup(){
+        myThread = new Thread(()->receive());
+        myThread.start();
+        Log.i("Thread Start", "is called");
+    }
+
+    // HERE
+
+    public void receive(){
+        while (btSocket.isConnected()){
+            Log.i("receive is Running", "message");
+            try {
+                BufferedReader reader = null;
+                reader = new BufferedReader(new InputStreamReader(
+                        btSocket.getInputStream()));
+                while(true) {
+                if(reader.ready()) {
+                    Log.i("receive is Running", "message");
+                    String myLine = reader.readLine();
+                    if (myLine != null) {
+                        runOnUiThread(() -> {
+                            handledata(myLine);
+                        });
+                    }
+                }
+            }
+            } catch (Exception e) {
+
+            }
+        }
+    }
+
+    public void handledata(String message) {
+        message.trim();
+        Log.i("handle Data", message);
+        if(receivedData.getText().toString().equals("Data: Erhalten")){
+            receivedData.setText("Data: " + message + "!");
+        } else if(message.equals("Erhalten"))  {
+            receivedData.setText("Data: " + message);
+        } else {
+            // info Textfield here
+            receivedInfo.setText("Info: " + message);
         }
     }
 
@@ -324,6 +403,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
         // If the connection was successful return, else it will close the activity and return to MainActivity
         if(btSocket.isConnected()) {
             isConnected = true;
+            receiveSetup();
             return;
         }
 
@@ -350,6 +430,7 @@ public class ConnectionActivity extends AppCompatActivity implements SensorEvent
 
         synchronized (this) {
             if(sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                // Isolate the force of gravity with the low-pass filter.
                 mGravity[0] = alpha * mGravity[0] + (1 - alpha) * sensorEvent.values[0];
                 mGravity[1] = alpha * mGravity[1] + (1 - alpha) * sensorEvent.values[1];
                 mGravity[2] = alpha * mGravity[2] + (1 - alpha) * sensorEvent.values[2];
